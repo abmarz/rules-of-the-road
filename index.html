@@ -528,7 +528,10 @@ function start(data){
   if(data&&data.screen&&V[data.screen])S=Object.assign(JSON.parse(JSON.stringify(S0)),data);
   if(location.hash==="#rulebook")S.screen="rulebook";
   render();
-
+}
+try{window.claude?.hot?.snapshot(()=>({screen:S.screen,ch:S.ch,i:S.i,st:S.st,flags:S.flags,got:S.got,vs:S.vs,mult:S.mult,pick:S.pick,broke:!!S.broke}))}catch(e){}
+if(window.claude?.hot?.ready)window.claude.hot.ready(start);else start(window.claude?.hot?.data??{});
+}
 </script>
 </body>
 </html>

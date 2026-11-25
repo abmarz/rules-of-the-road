@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rules of the Road</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE occasion: a short road-trip game for a class, playful but clear
+   IDEA a highway trip across an old map, the professor's road with three zones and road signs
+   PICTURE the route strip with START, hexagon/oval/diamond stops, an EXIT sign, a $$$ sign and a moving car
+   COLOUR map paper ground, asphalt, zone orange/green/blue, sign yellow and highway green
+   TYPE Overpass (highway lettering) for everything, heavy weights for signs
+   LAYOUT route on top, dashboard gauges, then the stop card; stacks to one column on phones */
+:root{color-scheme:light dark;--bg:light-dark(#ece3cf,#111418);--paper:light-dark(#fbf7ee,#1b1f25);--ink:light-dark(#1c1e21,#ede7db);--muted:light-dark(#5b574e,#aaa496);--line:light-dark(#d6c9ad,#303740);--grid:light-dark(rgba(120,95,50,.10),rgba(255,255,255,.04));--l1:#d4702a;--l2:#3b8a3c;--l3:#4a6cb3;--tr:#62488f;--sign:#f2c230;--hwy:#1d6a4b;--asph:#2a2d32;--red:#b5463b;--zone:light-dark(.16,.22)}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:44px 44px;color:var(--ink);font:16px/1.55 Overpass,"Segoe UI",system-ui,sans-serif;overflow-x:clip;min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--sign);outline-offset:2px}
+.wrap{max-width:1000px;margin:0 auto;padding:20px max(16px,3vw) 48px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.mini{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;background:none;border:0;padding:6px 0}
+.mini svg{width:30px;height:30px}
+.ghost{background:var(--paper);border:2px solid var(--line);border-radius:10px;padding:9px 14px;font-weight:600;min-height:44px}
+.ghost:hover{border-color:var(--ink)}
+.tbtns{display:flex;gap:10px;flex-wrap:wrap}
+#music{display:inline-flex;align-items:center;gap:8px}
+#music .mute{display:none}
+#music[aria-pressed=false] .mute{display:inline}
+#music[aria-pressed=false] .wave{display:none}
+
+.go{background:var(--hwy);color:#fff;border:3px solid #fff;outline:2px solid var(--hwy);border-radius:10px;padding:12px 22px;font-weight:800;font-size:18px;min-height:48px}
+.go:hover{background:#155a3e;outline-color:#155a3e}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:clamp(18px,3vw,30px);box-shadow:0 2px 0 var(--line)}
+h1,h2,h3{line-height:1.05;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font-size:clamp(28px,4.4vw,40px);font-weight:900}
+h3{font-size:21px;font-weight:800}
+p{margin:.5em 0}
+.muted{color:var(--muted)}
+/* title */
+.hero{display:grid;gap:22px}
+.hero .fig{position:relative;min-height:340px;border-radius:18px;overflow:hidden;border:1px solid var(--line)}
+.hero .fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.hero-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}
+.hero-row .btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.road-key{display:grid;gap:10px}
+.key{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:center}
+.key b{display:block;font-size:15px}
+.key span{font-size:14px;color:var(--muted)}
+/* characters */
+.chars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.char{text-align:left;background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.char:hover{border-color:var(--ink);transform:translateY(-2px)}
+.char .pic{height:150px;display:block;width:100%}
+.char .body{padding:16px 18px 18px;display:grid;gap:8px}
+.char .tag{font-size:14px;color:var(--muted)}
+.stats{display:grid;gap:5px;font-size:13px}
+.srow{display:grid;grid-template-columns:4.6em minmax(0,1fr);align-items:center;gap:8px}
+.bar{height:8px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px}
+/* route */
+.route{position:relative;height:170px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--paper)}
+.route>svg{position:absolute;inset:0;width:100%;height:100%}
+#car{transition:transform .9s cubic-bezier(.5,0,.3,1)}
+.dash{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.gauge{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.gauge .lab{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:600}
+.gauge .lab em{font-style:normal;color:var(--muted);font-weight:400}
+.gauge .bar{height:12px;margin-top:6px}
+.gauge .bar i{transition:width .6s}
+.delta{font-weight:800;white-space:nowrap}
+.up{color:var(--l2)}.dn{color:var(--red)}
+/* stop */
+.stop{display:grid;gap:14px}
+.badge{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
+.badge svg{width:30px;height:30px;flex:none}
+.story{font-size:17px;max-width:68ch}
+.opts{display:grid;gap:10px}
+.opt{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:center;text-align:left;background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:14px 16px;font-size:16px;font-weight:600;min-height:56px}
+.opt:hover{border-color:var(--ink);background:var(--paper)}
+.opt svg{width:26px;height:26px}
+.verdict{display:inline-block;padding:4px 12px;border-radius:20px;font-weight:800;font-size:14px;color:#fff}
+.v-smooth{background:var(--l2)}.v-bumpy{background:#b9811b}.v-detour{background:var(--red)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:14px;background:var(--bg)}
+.sign{display:grid;grid-template-columns:76px minmax(0,1fr);gap:18px;align-items:start;border-radius:14px;padding:18px;background:light-dark(#fff8dc,#24221a);border:2px solid var(--sign)}
+.sign svg{width:76px;height:76px}
+.sign .kick{font-size:14px;font-weight:600;color:var(--muted)}
+.sign h3{font-size:24px;margin:2px 0 6px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+.two div{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:15px}
+.two b{display:block;font-size:13px;color:var(--muted);font-weight:600}
+.next{display:flex;justify-content:flex-end}
+/* level intro */
+.lvl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center}
+.lvl svg{width:120px;height:120px}
+/* end */
+.ending{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px;align-items:start}
+.big{font-size:clamp(56px,10vw,88px);font-weight:900;line-height:1;letter-spacing:-.03em}
+.list{display:grid;gap:8px;margin:10px 0 0;padding:0;list-style:none}
+.list li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;font-size:15px}
+.list svg{width:20px;height:20px;margin-top:2px}
+/* rulebook */
+.rb-lvl{margin-top:26px}
+.rb-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;color:#fff;font-weight:800;font-size:20px}
+.rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.rule{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:6px;align-content:start}
+.rule .src{font-size:14px;color:var(--muted)}
+.rule h3{font-size:19px}
+.rule p{font-size:15px;margin:0}
+.rule .two{grid-template-columns:minmax(0,1fr)}
+.foot{margin-top:28px;font-size:14px;color:var(--muted)}
+@media(max-width:760px){.chars{grid-template-columns:minmax(0,1fr)}.char{flex-direction:row}.char .pic{width:120px;height:auto;flex:none}.hero-row,.ending,.rules{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.dash{grid-template-columns:minmax(0,1fr);gap:6px}.gauge{padding:6px 12px}.two{grid-template-columns:minmax(0,1fr)}.sign{grid-template-columns:52px minmax(0,1fr);padding:14px;gap:12px}.sign svg{width:52px;height:52px}.route{height:130px}.lvl{grid-template-columns:minmax(0,1fr)}.lvl svg{width:84px;height:84px}.hero .fig{min-height:260px}}
+@media(prefers-reduced-motion:reduce){#car,.gauge .bar i{transition:none}.char:hover{transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <button class="mini" id="home" aria-label="Back to the title screen"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="7" y="7" width="26" height="26" rx="3" transform="rotate(45 20 20)" fill="#f2c230" stroke="#1c1e21" stroke-width="2"/><path d="M15 25 L20 14 L25 25" fill="none" stroke="#1c1e21" stroke-width="3" stroke-linecap="round"/></svg>Rules of the Road</button>
+    <div class="tbtns"><button class="ghost" id="music" aria-pressed="true"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4Z" fill="currentColor"/><path class="wave" d="M16 9 Q18.5 12 16 15 M18.5 6.5 Q23 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="mute" d="M16 9 L22 15 M22 9 L16 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Music on</span></button><button class="ghost" id="openRules">The Rulebook</button></div>
+  </div>
+  <main id="app"></main>
+  <p class="foot">A BAEP 553 Cases in New Venture Management final project by Abdullah Al Marzouq. Every scenario, obstacle and rule is drawn from the course vignettes, the guest speakers’ stories and my pre and post class papers. Choices are simplified for play. The soundtrack is generated live in your browser; use the Music button to mute it.</p>
+</div>
+<script>
+{
+const LV=[null,
+ {n:1,name:"Product Development",sub:"Pre-Start to Start",col:"var(--l1)",hex:"#d4702a",shape:"hex"},
+ {n:2,name:"Product Launch",sub:"Marketing and Growth",col:"var(--l2)",hex:"#3b8a3c",shape:"oval"},
+ {n:3,name:"Management",sub:"Liquidity and Exit",col:"var(--l3)",hex:"#4a6cb3",shape:"dia"}];
+
+const R={
+r_clear:{l:1,t:"Clear the road before you leave",topic:"Corporate Executive to Entrepreneur",who:"Lori Torres (ParcelPending) and Doug Pearson (Chachi’s)",story:"Pearson and his wife left corporate life only once they were both ready for the risk. Lori told The Irvine Company about her idea before she left, then downsized her house to fund the bootstrap.",pre:"I would not disclose my idea to my employer, since my leaving would look like a headache they would rather not deal with.",post:"Lori’s reasoning on the legal risk changed my mind. Disclose, get your family’s buy-in and set a runway before you leap."},
+r_spec:{l:1,t:"Write your spec",topic:"Entry Strategy: Acquiring a Business",who:"Doug Pearson (Chachi’s)",story:"Pearson listed his strengths in sales, products and money, then used his P&G branding and grocery channel experience to choose and grow Chachi’s. He did it with no partner at all.",pre:"A founder entering an unfamiliar industry should bring in a partner who knows the technical side.",post:"Play to the strengths you already have instead of chasing ones you think you need. Going solo is viable, though riskier."},
+r_sell:{l:1,t:"Sell first, and not to your friends",topic:"Corporate Executive to Entrepreneur",who:"Lori Torres (ParcelPending)",story:"Lori credits sales above all for 70% year over year growth. The apartment council she knew did not buy at first, and The Irvine Company became a client only later. Tiny $3 late fees added up to $10 million a year.",pre:"Lean on my expertise and connections in the industry to reach people and close deals faster.",post:"People you know are not proof of product-market fit. Sell to strangers, and remember that small numbers matter."},
+r_draft:{l:1,t:"Your first idea is a draft",topic:"Opportunity Recognition",who:"Vanessa Dew (Health-Ade Kombucha)",story:"Three friends tried to cure hair loss in a kitchen. The remedy failed, but the drink tasted great, so they took it to a farmers market and landed a retailer within three months.",pre:"",post:"The pivot matters less than what you refuse to change. Let real customers tell you what you are actually selling."},
+r_equity:{l:1,t:"Give equity only when it makes sense",topic:"Corporate Executive to Entrepreneur",who:"Lori Torres and Vanessa Dew",story:"Lori gave up equity only to raise money from angel and institutional investors. Vanessa’s founding friends split equity easily, and she admitted it could have gone wrong fast.",pre:"I would bring in a partner to offset the risk and speed things up.",post:"Equity is the most expensive currency you have. Write the split down and spend it only when it buys something."},
+r_boot:{l:1,t:"Bootstrap like it is your job",topic:"Corporate Executive to Entrepreneur",who:"Lori Torres, Lloyd Greif and Vanessa Dew",story:"Lori used the free Small Business Development Center. Greif took no paycheck until month 18 during a recession. Health-Ade’s Kickstarter failed, yet it caught the eye of the investor who backed them.",pre:"",post:"Sacrifice is a core tenet of entrepreneurship. Use every free resource and put the company’s stability ahead of your own comfort."},
+r_front:{l:1,t:"Your frontline pain is the opportunity",topic:"Launching a Technology Company for the Medical Markets",who:"Dr. Steve Kim (Valer)",story:"Faxed prior authorizations delayed care for children. He incorporated Valer around 2012 and kept practicing until about 2017, seeing the problem up close every working day.",pre:"",post:"Frontline experience is knowledge outsiders cannot easily gather. Turn frustration into action, and the leap does not have to be impulsive."},
+r_cofounder:{l:1,t:"Know what you don’t know, and hire for it",topic:"Launching a Technology Company for the Medical Markets",who:"Dr. Steve Kim and Matt Ohrnstein",story:"Ohrnstein knew nothing about auto body repair, not even how to change oil. He hired insurance people to run insurance, repair people to run repair and HR people to run HR.",pre:"A physician building technology needs a cofounder strong in tech, business or ideally both.",post:"Expertise can mean assembling the right people. Hire deliberately by function, not generally."},
+r_buyer:{l:1,t:"The user is not always the buyer",topic:"Launching a Technology Company for the Medical Markets",who:"Dr. Steve Kim (Valer)",story:"Surgeons feel the prior authorization pain, but hospitals decide how they operate and what they buy. Selling into medical systems takes many signatures and a long time.",pre:"Surgeons run the operating room, not the hospital. Solve the hospital’s pain first to get through the door.",post:"The talk confirmed it: the path from idea to adoption runs through hospital buy-in, and it is a marathon."},
+r_mna:{l:2,t:"In a fragmented market, buy smart",topic:"Growth Through Mergers and Acquisitions",who:"Matt Ohrnstein",story:"He grew from nine locations through 68 acquisitions. He paid at most 50% cash with the rest in subordinated notes, and every deal came with a five-year plan investors held him to.",pre:"",post:"Seller notes keep sellers invested after the sale. A written plan you are held to is a more disciplined way to raise and deploy capital."},
+r_diligence:{l:2,t:"Diligence the numbers and the people",topic:"Growth Through Mergers and Acquisitions",who:"Matt Ohrnstein, Doug Pearson and Lloyd Greif",story:"One seller overreported revenue and underreported expenses, so Ohrnstein started verifying equipment on site. Pearson leaned on cash flow analysis. Greif insisted on meeting the CEO, not just the CFO.",pre:"I would be most concerned with why the business is for sale.",post:"Due diligence is not only about the numbers. It is about understanding the people behind a company."},
+r_outsource:{l:2,t:"Stay lean: outsource what isn’t core",topic:"When Your Best Strategy is to Pivot",who:"Mark (fitness products)",story:"Sales went from under $500K to $32 million and then $63 million, yet the company never had more than 20 employees. Everything else was outsourced.",pre:"",post:"Refusing to go vertical kept costs down and cash flow healthy. It is a new way for me to think about a company’s financials."},
+r_demand:{l:2,t:"Too much demand is a good problem, if quality never bends",topic:"When is Too Much Demand a Problem",who:"Vanessa Dew (Health-Ade Kombucha)",story:"When Trader Joe’s called, Health-Ade raised capital and closed a Series A with First Beverage. The retailer agreed to wait and focus on specific stores as a test against GT’s.",pre:"I laid out three routes (delay, reshuffle supply or raise capital) and chose to raise capital on my own terms.",post:"That matched what happened. Their unwavering commitment to quality and a clear customer profile is what I respect most."},
+r_pivot:{l:2,t:"Pivot on evidence, not panic",topic:"When Your Best Strategy is to Pivot",who:"Mark (fitness products) and Vanessa Dew",story:"The economy shifted in 2008, competition got stiff and working capital tightened. Even a great product could not outrun a collapsing market.",pre:"Look from the outside in. Pivoting is easy to execute but hard to decide, and it must not be confused with jumping the gun.",post:"Pivoting only works when the environment allows it. Know what you refuse to change."},
+r_partner:{l:2,t:"Choose who you build with like everything depends on it",topic:"When Your Best Strategy is to Pivot",who:"Mark (fitness products)",story:"Mark built one of the best selling fitness products in the world, then was betrayed by his business partner as the 2008 crisis hit.",pre:"",post:"Choosing who you build with may be the most important decision an entrepreneur makes."},
+r_custprob:{l:2,t:"Build against a customer’s real problem",topic:"What’s the Value of Patent Protection",who:"Rod Derifield",story:"His temperature-controlled shipping product was a breakthrough, yet sales were slow. Then a key customer brought him a problem. He solved it in six weeks and they wanted it at mass scale.",pre:"",post:"A good innovation does not automatically create demand. Find a real pain point and build directly against it."},
+r_patent:{l:2,t:"A patent is only worth what you can defend",topic:"What’s the Value of Patent Protection",who:"Rod Derifield",story:"He spent $250,000 on the U.S. patent, $1 million abroad and $50,000 a year in renewals. A competitor copied it, a judge removed the infringed claim and he lost on appeal, 25% of his top line and ten margin points.",pre:"A granted patent is the starting gun, not the finish line. Prior art, design-arounds and missing foreign filings can all hurt you.",post:"The value is real but conditional. It cannot replace understanding customers or the conviction to defend what you built."},
+r_rightnotfast:{l:2,t:"Grow right, not fast",topic:"Developing and Executing a Franchise Model",who:"Carrie Dorr (Pure Barre)",story:"Rapid expansion ended with three teachers leaving to open a rival studio, a $3 million dispute and near bankruptcy. She regrouped in San Diego and focused on one thing, barre, because it was easier to scale.",pre:"",post:"Setbacks are hurdles to get over, not reasons to stop. Focus on the one thing that scales."},
+r_franchise:{l:2,t:"Franchise to scale, but the terms decide everything",topic:"Developing and Executing a Franchise Model",who:"Carrie Dorr (Pure Barre)",story:"With no money to expand, she tried licensing deals in Los Angeles. A rival’s complaint led to a lawsuit and a $50,000 conversion to a franchise model, and franchisees grew the business from there.",pre:"From franchising in Kuwait, I saw the franchisee carry most of the financial risk. The profit split is what really matters.",post:"Franchising only works with a real playbook, fair terms and the right people running operations."},
+r_serious:{l:3,t:"Become a serious CEO: one king, clear roles",topic:"Transitioning from Entrepreneur to Entrepreneurial CEO",who:"Michael Caito",story:"He ran the company with his brother and his brother’s best friend, and employees were unsure who to report to. An advisor told him a Fortune 500 board would fire him.",pre:"I would ask for clarification, then keep doing what I was doing as long as the company did well.",post:"At a certain point, to keep success and grow it, you have to be serious. There can only be one king."},
+r_cookie:{l:3,t:"Customers are king",topic:"The Founder’s Exit: Positioning Your Business for Sale",who:"Rob Ukropina (Overnite Express)",story:"A $125,000 cookie campaign drove $8 million in business. He also raised money through advisory boards of industry insiders, including a UPS manager.",pre:"",post:"Customer acquisition always wins in the end, and insiders on your board shape how the business runs, not just how it raises money."},
+r_greed:{l:3,t:"Don’t be greedy: leave well",topic:"The Founder’s Exit: Positioning Your Business for Sale",who:"Rob Ukropina (Overnite Express)",story:"Overnite Express came after two failed ventures. His rule for a successful departure, in his words, was not being greedy.",pre:"Find a buyer who shares the mission, and have a contingency plan for the employees who depend on you.",post:"A good exit comes from restraint rather than appetite. Humility is what lets you walk away well."},
+r_phone:{l:3,t:"The phone will ring. Walk away from bad offers",topic:"The Founder’s Exit: Positioning Your Business for Sale",who:"Lori Torres and Doug Pearson",story:"Lori turned down an early Amazon offer at about 1.1 times revenue and later sold at 7 times. Pearson told us the phone is going to ring regardless.",pre:"Timing an exit is all gut feeling, unless investors are involved.",post:"Always be willing to walk away, and trust your gut on when the right time to say yes is."},
+r_prepare:{l:3,t:"Prepare early and get help",topic:"The Investment Banker: Preparing Your Business for Sale",who:"Lloyd Greif (Greif & Co.)",story:"Greif built expertise and a reputation at Sutro before starting his firm. He stressed mentors, real diligence and four pillars as a north star: wisdom, integrity, strength and aggressiveness.",pre:"Should you retain help? No, you are selling your business, not making a strategic move.",post:"Preparation, values and relationships are what allow an outlier to succeed. Get mentors and a banker early."}
+};
+
+const C=[
+{id:"climber",name:"The Corporate Climber",tag:"Fifteen years up the ladder, a family that depends on your salary and an idea you can’t shake.",insp:"Inspired by Doug Pearson, Lori Torres and Matt Ohrnstein",start:{f:6,s:2,c:5},stops:[
+ {l:1,title:"The corner office exit",text:"From your senior VP seat you see a problem getting worse every day. Your employer has no interest in solving it. If you don’t, someone else will.",rule:"r_clear",o:[
+  {t:"Quit on Friday and tell no one what you are building",out:"Your old boss hears about it from a vendor. Lawyers send letters and a few doors you were counting on quietly close.",d:{f:-1,s:0,c:-2},v:"bumpy"},
+  {t:"Get your family on board, set a 12 month runway, then tell your employer before you leave",out:"Your spouse is nervous but in. Your employer shrugs, since most people who leave never launch. You walk out on good terms with a future customer.",d:{f:0,s:1,c:2},v:"smooth"},
+  {t:"Keep the job and build on nights and weekends indefinitely",out:"Two years pass. A competitor ships your idea first. You still have the paycheck though.",d:{f:1,s:-1,c:0},v:"detour"}]},
+ {l:1,title:"Build it or buy it?",text:"You decide owning a company beats climbing for someone else’s. Your banker asks the obvious question: start one or buy one?",rule:"r_spec",o:[
+  {t:"Write your spec (sales, products, money) and buy a small brand that fits your strengths",out:"Marketing is your superpower, so you buy a sleepy regional food brand with great product and no branding. You know exactly what to do with it.",d:{f:-2,s:2,c:1},v:"smooth"},
+  {t:"Buy whatever is cheapest in the hottest industry",out:"It was cheap for a reason. You spend six months learning a business you don’t understand.",d:{f:-2,s:-1,c:0},v:"bumpy"},
+  {t:"Start from scratch in a field you have never worked in",out:"Everything takes three times longer than planned. Your corporate playbook barely applies.",d:{f:-1,s:0,c:-1},v:"detour"}]},
+ {l:1,title:"The first big customer",text:"The product is ready. You need revenue before your savings run dry.",rule:"r_sell",o:[
+  {t:"Pitch your old industry friends first. They will buy out of loyalty",out:"Lunches, polite nods and zero purchase orders. The people who know you best are not your market.",d:{f:-1,s:-1,c:0},v:"bumpy"},
+  {t:"Hit the road and sell to strangers until the product proves itself",out:"A hundred no’s sharpen your pitch. Then real orders arrive from people who owe you nothing.",d:{f:1,s:2,c:0},v:"smooth"},
+  {t:"Hire a full sales team before your first sale",out:"Payroll eats your runway while the team learns a product nobody has bought yet.",d:{f:-2,s:1,c:0},v:"detour"}]},
+ {l:2,title:"Organic or acquire?",text:"Your industry is thousands of small mom and pop shops. You want to scale nationally and sell at an attractive price someday.",rule:"r_mna",o:[
+  {t:"Roll up competitors: at most 50% cash, the rest in seller notes, backed by a five-year plan",out:"Sellers stay invested and stay on. Each deal adds locations, customers and know-how, and investors trust the plan they can hold you to.",d:{f:-1,s:3,c:1},v:"smooth"},
+  {t:"Pay all cash to close deals fast",out:"You close quickly. Then sellers cash out and leave, and some of their customers follow them.",d:{f:-3,s:1,c:-1},v:"bumpy"},
+  {t:"Grow organically, one location at a time",out:"Steady and safe, but slow. Bolder competitors start consolidating around you.",d:{f:0,s:1,c:1},v:"detour"}]},
+ {l:2,title:"Obstacle: the perfect target",text:"A seller shows you a business with spotless numbers and a motivated price. The broker says other bidders are circling.",rule:"r_diligence",o:[
+  {t:"Verify the books, inspect equipment on site and meet the person really running it",out:"Revenue was overstated and expenses understated. You renegotiate hard and avoid a lawsuit you would have lost.",d:{f:1,s:0,c:1},v:"smooth"},
+  {t:"Trust the broker and close before someone else does",out:"Six months later the real numbers surface. You end up in court and the deal drains cash and focus.",d:{f:-2,s:-1,c:-1},v:"bumpy"}]},
+ {l:2,title:"Orders triple",text:"Demand finally outruns your operations. Do you build capacity or buy it?",rule:"r_outsource",o:[
+  {t:"Build your own plant and delivery fleet",out:"You control everything, and you also pay for everything. Fixed costs balloon and cash gets tight.",d:{f:-2,s:1,c:0},v:"bumpy"},
+  {t:"Outsource everything that isn’t core and keep the team small",out:"Partners absorb the volume. Your lean team focuses on brand and customers and cash flow stays healthy.",d:{f:2,s:1,c:0},v:"smooth"}]},
+ {l:3,title:"Building value",text:"Growth is leveling off and you can feel buyers starting to watch. What do you invest in?",rule:"r_cookie",o:[
+  {t:"Cut marketing to make profits look fatter before a sale",out:"Profit jumps for two quarters. Then the pipeline dries up, and buyers notice.",d:{f:1,s:-2,c:0},v:"bumpy"},
+  {t:"Launch a bold customer campaign and recruit an advisory board of industry insiders",out:"A memorable campaign wins accounts worth many times its cost, and your insider board opens doors you didn’t know existed.",d:{f:-1,s:2,c:1},v:"smooth"}]},
+ {l:3,title:"The phone rings",text:"A tech giant calls with an offer of about 1.1 times revenue. Two board members are tempted.",rule:"r_phone",o:[
+  {t:"Take it. A bird in the hand",out:"You sign. The check is real, but so is the value you left on the table. Your road ends here.",d:{f:1,s:0,c:-1},v:"detour",end:1.1},
+  {t:"Walk away and trust your gut. Keep building",out:"The board grumbles, but you stay the course. Better offers come to companies that keep growing.",d:{f:0,s:1,c:1},v:"smooth"}]},
+ {l:3,title:"The final sale",text:"Two serious buyers. One pays top dollar and plans to cut your team. The other pays a bit less, shares your mission and will keep your people.",rule:"r_greed",o:[
+  {t:"Take the top dollar, whatever happens to the team",out:"You get the number. Key people quit within months, and your earn-out suffers with them.",d:{f:2,s:-1,c:-3},v:"bumpy"},
+  {t:"Choose the mission-aligned buyer with a plan for your employees",out:"A slightly smaller check, a smooth transition and a business that keeps running well after you leave.",d:{f:1,s:1,c:2},v:"smooth"},
+  {t:"Hold out a year for a third bidder",out:"The market cools while you wait. Both buyers move on.",d:{f:0,s:-2,c:-1},v:"detour"}]}
+]},
+{id:"student",name:"The Broke Student",tag:"Two friends, one kitchen, zero dollars and a lot of nerve.",insp:"Inspired by Vanessa Dew, Michael Caito and Carrie Dorr",start:{f:2,s:3,c:6},stops:[
+ {l:1,title:"The kitchen experiment",text:"You and two friends set out to cure hair loss. It doesn’t work. But everyone who tries your brew keeps asking for more.",rule:"r_draft",o:[
+  {t:"Keep chasing the cure. The market is huge",out:"Nobody on the team knows how to cure hair loss, and months of cash go into the sink.",d:{f:-1,s:-1,c:0},v:"detour"},
+  {t:"Follow what people want: bottle the drink and get a farmers market table",out:"Sold out by noon. Within a few months a local store asks to carry you.",d:{f:1,s:2,c:1},v:"smooth"},
+  {t:"Shelve it and apply for internships",out:"Safe, sensible and a little sad. Your friends drift back to their own plans.",d:{f:0,s:-1,c:-1},v:"detour"}]},
+ {l:1,title:"Splitting the pie",text:"Things are getting real. Who owns what?",rule:"r_equity",o:[
+  {t:"Equal thirds on a handshake. We are friends",out:"It feels great today. Nobody has written down who decides what, and that will matter later.",d:{f:0,s:0,c:1},v:"bumpy",flag:"handshake"},
+  {t:"Write it down: roles, vesting and equity only when it buys something",out:"An awkward evening, then clarity. Everyone knows their job and their stake.",d:{f:0,s:1,c:1},v:"smooth"},
+  {t:"Give 5% to every friend who helps out",out:"By spring a dozen people own a piece and nobody owns the problems. Investors frown at the cap table.",d:{f:0,s:0,c:-2},v:"bumpy"}]},
+ {l:1,title:"Zero dollars",text:"You need inventory, bottles and a van. You have $340.",rule:"r_boot",o:[
+  {t:"Max out credit cards",out:"The van arrives. So does 24% interest.",d:{f:1,s:0,c:-1},v:"bumpy"},
+  {t:"Bootstrap: keep part-time jobs, use the free Small Business Development Center and sell through commission reps",out:"Slow, scrappy and debt free. Commission reps put you into stores you could never reach alone.",d:{f:2,s:1,c:0},v:"smooth"},
+  {t:"Launch a Kickstarter",out:"It flops. Then an investor who saw the campaign calls and offers to help build the business.",d:{f:2,s:0,c:0},v:"smooth"}]},
+ {l:2,title:"The Hawaiian shirt call",text:"You are in thousands of natural stores and working 18 hour days. A national grocer famous for Hawaiian shirts wants you on every shelf.",rule:"r_demand",o:[
+  {t:"Say yes to every store now and short your loyal customers",out:"Shelves go empty everywhere. Your oldest accounts feel betrayed and the new one is unimpressed.",d:{f:-1,s:1,c:-2},v:"bumpy"},
+  {t:"Take investor money that comes with cheaper production shortcuts",out:"Volume goes up and the taste goes down. Your fans notice first.",d:{f:2,s:-1,c:-1},v:"bumpy"},
+  {t:"Be honest: propose a focused rollout in a few stores while you raise capital on your terms. Quality never bends",out:"The grocer agrees to a test in select stores. You close a round and scale production carefully.",d:{f:1,s:2,c:1},v:"smooth"}]},
+ {l:2,title:"Obstacle: the walkout",text:"You expanded fast. Three of your best people leave with your playbook and open a rival down the street.",rule:"r_rightnotfast",o:[
+  {t:"Sue everyone and open three more locations to crush them",out:"Legal bills and new leases stack up at once. You come within weeks of bankruptcy.",d:{f:-3,s:0,c:-1},v:"bumpy"},
+  {t:"Regroup: focus on the one product that scales, protect the playbook in contracts and grow right, not fast",out:"Narrower, calmer and stronger. Your one hero product starts winning on its own.",d:{f:0,s:1,c:1},v:"smooth"}]},
+ {l:2,title:"How do you grow without cash?",text:"Customers in other states are begging for you. You can’t afford to open there yourself.",rule:"r_franchise",o:[
+  {t:"Open company-owned locations with debt",out:"Each opening drains cash for a year before it pays back.",d:{f:-2,s:1,c:0},v:"bumpy"},
+  {t:"Sign quick handshake licensing deals with eager fans",out:"A rival complains, a lawsuit follows and converting to a proper franchise costs you $50,000.",d:{f:-1,s:1,c:0},v:"detour"},
+  {t:"Build a real franchise model: a playbook, a fair profit split and franchisees who fund the build-out",out:"Franchisees carry the capital and the local hustle. You grow across states without new debt.",d:{f:1,s:3,c:0},v:"smooth"}]},
+ {l:3,title:"Three bosses",text:"An advisor pulls you aside: “If you were CEO of a public company, the board would fire you.” Staff aren’t sure which founder to report to.",textH:" Your handshake split doesn’t help: nobody ever wrote down who decides.",rule:"r_serious",o:[
+  {t:"Shrug it off. Revenue is fine",out:"Revenue is fine, for now. Decisions stall and two managers quit over mixed signals.",d:{f:0,s:-1,c:-2},v:"bumpy"},
+  {t:"Name one CEO, write down every founder’s role and hire a CFO and an operations lead",out:"One king, clear lanes. You finally get to be the visionary while pros run the machine.",d:{f:0,s:1,c:2},v:"smooth"},
+  {t:"Make all three of you co-CEOs",out:"Three bosses means no boss. Employees keep asking “who decides?”",d:{f:0,s:0,c:-2},v:"bumpy"}]},
+ {l:3,title:"Positioning for sale",text:"You have $125,000 left in this year’s budget. Buyers will be looking at customer momentum.",rule:"r_cookie",o:[
+  {t:"Spend it on a memorable campaign that wins new customers",out:"A playful campaign becomes the talk of the industry and brings in business worth many times its cost.",d:{f:-1,s:2,c:0},v:"smooth"},
+  {t:"Bank it so profits look bigger",out:"Profit looks a little better. Growth looks a little worse.",d:{f:1,s:-1,c:0},v:"detour"}]},
+ {l:3,title:"Who buys your baby?",text:"A strategic buyer calls. You have never sold a company before.",rule:"r_prepare",o:[
+  {t:"Go it alone. You built it, you can sell it",out:"The buyer’s team runs circles around you on terms, and messy books slow everything down.",d:{f:-1,s:-1,c:0},v:"bumpy"},
+  {t:"Lean on mentors, hire a banker, clean the books and meet the buyer’s CEO, not just the CFO",out:"A real process brings competing bids and a buyer you actually trust.",d:{f:2,s:0,c:1},v:"smooth"}]}
+]},
+{id:"expert",name:"The Industry Expert",tag:"Twenty years mastering your field. You know exactly what is broken and nobody else is fixing it.",insp:"Inspired by Dr. Steve Kim, Rod Derifield and Lloyd Greif",start:{f:5,s:2,c:3},stops:[
+ {l:1,title:"The broken fax machine",text:"You are a surgeon. Insurance pre-authorizations still move by fax, and sometimes a child’s surgery can’t wait for them.",rule:"r_front",o:[
+  {t:"Quit your practice tomorrow and go all in",out:"Your income stops and so does your daily view of the problem you are solving.",d:{f:-2,s:1,c:0},v:"bumpy"},
+  {t:"Incorporate now and build while you keep practicing",out:"Every shift is market research. You leave years later, once the company can stand on its own.",d:{f:1,s:1,c:0},v:"smooth"},
+  {t:"Wait for the big software vendors to fix it",out:"They don’t. Five years later you are still filling out forms.",d:{f:0,s:-1,c:0},v:"detour"}]},
+ {l:1,title:"Going it alone?",text:"You understand the problem better than anyone. Software, sales and fundraising are another story.",rule:"r_cofounder",o:[
+  {t:"Solo. You are the expert",out:"Your prototype is clinically perfect and nearly impossible to sell or scale.",d:{f:0,s:-1,c:-1},v:"bumpy"},
+  {t:"Partner with a proven tech and business cofounder, vetted carefully",out:"References check out and your skills fit like puzzle pieces.",d:{f:0,s:1,c:2},v:"smooth"},
+  {t:"Partner with the first enthusiastic friend who offers",out:"Great energy, quick handshake. You skip the background check.",d:{f:0,s:1,c:1},v:"bumpy",flag:"badPartner"}]},
+ {l:1,title:"The first sale",text:"The product works. Who do you sell it to?",rule:"r_buyer",o:[
+  {t:"Fellow surgeons. They will love it",out:"They love it. They also don’t sign the hospital’s checks.",d:{f:0,s:-1,c:0},v:"bumpy"},
+  {t:"Find the hospital’s pain first and sell to whoever holds the budget",out:"A long sales cycle and many signatures, but you land a real contract.",d:{f:1,s:2,c:0},v:"smooth"}]},
+ {l:2,title:"An odd request",text:"Your product is clever, but sales are slow. Then a major customer asks: can you solve this other problem for us?",rule:"r_custprob",o:[
+  {t:"Politely decline and stick to your roadmap",out:"Focus feels good. Sales stay slow.",d:{f:0,s:-1,c:0},v:"detour"},
+  {t:"Solve it in six weeks",out:"It works, and they want it rolled out at scale. This is your inflection point.",d:{f:1,s:3,c:0},v:"smooth"}]},
+ {l:2,title:"To patent or not?",text:"Your lawyers say the invention is patentable. Protection could cost seven figures.",rule:"r_patent",o:[
+  {t:"Go big: top firm, 21 countries, every claim",out:"Over a million dollars later, a near copy shows up at a trade show. You sue, and a judge narrows away the very claim they infringed.",d:{f:-3,s:-1,c:0},v:"bumpy"},
+  {t:"File where your customers are, keep a defense fund and lock in customer relationships",out:"When a copycat appears, your customers stay. They are buying your fix, not just your patent.",d:{f:-1,s:1,c:1},v:"smooth"},
+  {t:"Skip patents and rely on speed",out:"A competitor clones you and undercuts on price.",d:{f:0,s:-1,c:0},v:"detour"}]},
+ {l:2,title:"Obstacle: the market turns",text:"A recession hits. Budgets freeze and competition gets stiff.",textF:" Worse, your cofounder quietly starts a rival company with your playbook.",rule:"r_pivot",ruleF:"r_partner",o:[
+  {t:"Pivot overnight into whatever is trending",out:"You chase a buzzword and confuse the customers you still had.",d:{f:-1,s:-1,c:0},v:"bumpy"},
+  {t:"Look from the outside in: study the trends, then change only what the evidence says",out:"You keep what customers love and reshape pricing around frozen budgets. You come out leaner.",d:{f:0,s:2,c:0},v:"smooth"},
+  {t:"Cut to the bone and wait it out",out:"You survive barely and lose a year.",d:{f:1,s:-1,c:-1},v:"detour"}]},
+ {l:3,title:"Founder to CEO",text:"You still review every line of code and see patients on Fridays. An advisor says a public company board would fire you.",rule:"r_serious",o:[
+  {t:"Keep doing everything yourself",out:"You are the bottleneck. Good people get bored and leave.",d:{f:0,s:-1,c:-1},v:"bumpy"},
+  {t:"Hire a CFO and an operations lead and step up to CEO",out:"You let go of the details and the company speeds up.",d:{f:0,s:1,c:2},v:"smooth"}]},
+ {l:3,title:"Getting ready to sell",text:"Buyers are circling the industry. When do you start preparing?",rule:"r_prepare",o:[
+  {t:"Wait for a buyer to call, then figure it out",out:"Diligence finds messy contracts and the price drops.",d:{f:-1,s:-1,c:0},v:"bumpy"},
+  {t:"Start two years early: mentors, a banker and clean books",out:"When buyers call, you are ready and you set the terms.",d:{f:1,s:1,c:1},v:"smooth"}]},
+ {l:3,title:"The offer",text:"A strategic buyer offers about 1.2 times revenue. Your gut says the company is worth far more.",rule:"r_phone",o:[
+  {t:"Take it and be done",out:"Done is done. You sign at 1.2 times.",d:{f:1,s:0,c:0},v:"detour",end:1.2},
+  {t:"Walk away, keep growing and wait for the right call",out:"A year later the right buyer calls, and the number reflects what you built.",d:{f:0,s:1,c:1},v:"smooth"}]}
+]}];
+
+const S0={screen:"title",ch:null,i:0,st:null,flags:{},got:[],vs:[],pick:null,mult:null,prev:null};
+let S=JSON.parse(JSON.stringify(S0));
+const app=document.getElementById("app");
+const clamp=(v)=>Math.max(0,Math.min(10,v));
+const ch=()=>C.find(c=>c.id===S.ch);
+const esc=(t)=>String(t).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+
+function shape(l,size,fill,stroke){
+  const h=size/2,c=LV[l].hex;
+  const f=fill||c,s=stroke||"#fff";
+  if(l===1){const p=[0,1,2,3,4,5].map(k=>{const a=Math.PI/3*k;return (h+h*.92*Math.cos(a)).toFixed(1)+","+(h+h*.92*Math.sin(a)).toFixed(1)}).join(" ");return `<polygon points="${p}" fill="${f}" stroke="${s}" stroke-width="2"/>`}
+  if(l===2)return `<ellipse cx="${h}" cy="${h}" rx="${h*.94}" ry="${h*.74}" fill="${f}" stroke="${s}" stroke-width="2"/>`;
+  return `<rect x="${h*.3}" y="${h*.3}" width="${h*1.4}" height="${h*1.4}" fill="${f}" stroke="${s}" stroke-width="2" transform="rotate(45 ${h} ${h})"/>`;
+}
+const diamond=`<svg viewBox="0 0 80 80" aria-hidden="true"><rect x="14" y="14" width="52" height="52" rx="5" transform="rotate(45 40 40)" fill="#f2c230" stroke="#1c1e21" stroke-width="3"/><rect x="18" y="18" width="44" height="44" rx="3" transform="rotate(45 40 40)" fill="none" stroke="#1c1e21" stroke-width="1.5"/><path d="M33 52 V40 Q33 32 41 32 H47" fill="none" stroke="#1c1e21" stroke-width="5" stroke-linecap="round"/><path d="M44 25 L52 32 L44 39" fill="#1c1e21"/></svg>`;
+
+function portrait(id){
+  const skin={climber:"#c98d63",student:"#8a5a3c",expert:"#e2b48c"}[id];
+  const bg={climber:"#d4702a",student:"#3b8a3c",expert:"#4a6cb3"}[id];
+  let body="",extra="";
+  if(id==="climber"){body=`<path d="M40 150 Q40 104 100 100 Q160 104 160 150Z" fill="#2c3440"/><path d="M88 102 L100 140 L112 102Z" fill="#fff"/><path d="M96 106 L100 136 L104 106 L100 102Z" fill="#b5463b"/>`;extra=`<path d="M70 58 Q72 34 100 34 Q128 34 130 58 Q118 46 100 48 Q82 46 70 58Z" fill="#3a2a20"/><rect x="132" y="118" width="40" height="30" rx="4" fill="#5b3b26"/><rect x="144" y="112" width="16" height="8" rx="2" fill="none" stroke="#5b3b26" stroke-width="3"/>`}
+  if(id==="student"){body=`<path d="M38 150 Q40 102 100 98 Q160 102 162 150Z" fill="#f2c230"/><path d="M78 100 Q100 122 122 100" fill="none" stroke="#1c1e21" stroke-width="3"/><path d="M38 150 Q42 112 62 104 L66 150Z" fill="#1d6a4b"/>`;extra=`<path d="M66 60 Q64 30 100 28 Q138 30 134 60 Q130 42 100 42 Q72 42 66 60Z" fill="#1c1e21"/><rect x="118" y="70" width="8" height="5" rx="2" fill="#1c1e21"/>`}
+  if(id==="expert"){body=`<path d="M38 150 Q40 102 100 98 Q160 102 162 150Z" fill="#f6f3ec"/><path d="M86 100 L100 150 L114 100Z" fill="#7fa9c9"/><path d="M76 104 Q70 136 92 140" fill="none" stroke="#2a2d32" stroke-width="3"/><circle cx="92" cy="141" r="5" fill="#2a2d32"/>`;extra=`<path d="M68 56 Q70 32 100 32 Q130 32 132 56 Q124 44 100 44 Q76 44 68 56Z" fill="#9a9a9a"/><circle cx="88" cy="70" r="8" fill="none" stroke="#2a2d32" stroke-width="2"/><circle cx="112" cy="70" r="8" fill="none" stroke="#2a2d32" stroke-width="2"/><path d="M96 70 H104" stroke="#2a2d32" stroke-width="2"/>`}
+  return `<svg class="pic" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><rect width="200" height="150" fill="${bg}"/><circle cx="100" cy="150" r="120" fill="#fff" opacity=".12"/><path d="M0 132 L200 92 L200 104 L0 150Z" fill="#2a2d32" opacity=".35"/>${body}<rect x="90" y="84" width="20" height="18" fill="${skin}"/><ellipse cx="100" cy="66" rx="30" ry="34" fill="${skin}"/>${extra}<circle cx="89" cy="70" r="2.6" fill="#1c1e21"/><circle cx="111" cy="70" r="2.6" fill="#1c1e21"/><path d="M90 84 Q100 91 110 84" fill="none" stroke="#1c1e21" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+}
+
+function bars(st,big){
+  const rows=[["Fuel","cash","f","#d4702a"],["Speed","traction","s","#3b8a3c"],["Crew","team","c","#4a6cb3"]];
+  if(!big)return `<div class="stats">${rows.map(r=>`<div class="srow"><span>${r[0]}</span><div class="bar"><i style="width:${st[r[2]]*10}%;background:${r[3]}"></i></div></div>`).join("")}</div>`;
+  return `<div class="dash">${rows.map(r=>{const dv=S.prev?st[r[2]]-S.prev[r[2]]:0;const dl=dv?`<span class="delta ${dv>0?"up":"dn"}">${dv>0?"+":""}${dv}</span>`:"";return `<div class="gauge"><div class="lab"><span>${r[0]} <em>(${r[1]})</em></span><span>${st[r[2]]}/10 ${dl}</span></div><div class="bar"><i style="width:${st[r[2]]*10}%;background:${r[3]}"></i></div></div>`}).join("")}</div>`;
+}
+
+function heroSvg(){
+  return `<svg viewBox="0 0 1000 380" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A highway climbing across an old map through three zones toward an exit and a money sign">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e9c9"/><stop offset="1" stop-color="#e5d3aa"/></linearGradient>
+  <pattern id="mapg" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#b89a62" stroke-opacity=".25"/></pattern></defs>
+  <rect width="1000" height="380" fill="url(#sky)"/><rect width="1000" height="380" fill="url(#mapg)"/>
+  <rect x="0" y="0" width="333" height="380" fill="#d4702a" opacity=".14"/><rect x="333" y="0" width="334" height="380" fill="#3b8a3c" opacity=".14"/><rect x="667" y="0" width="333" height="380" fill="#4a6cb3" opacity=".16"/>
+  <path d="M333 20 V380 M667 20 V380" stroke="#b5463b" stroke-width="5" stroke-dasharray="14 6" opacity=".75"/>
+  <g transform="translate(500 210)" opacity=".22"><circle r="150" fill="none" stroke="#4a6cb3" stroke-width="10"/><circle r="120" fill="none" stroke="#4a6cb3" stroke-width="3"/><path d="M0 -140 L18 0 L0 140 L-18 0Z" fill="#4a6cb3"/><path d="M-140 0 L0 -14 L140 0 L0 14Z" fill="#4a6cb3"/></g>
+  <path d="M-20 400 L1020 60 L1020 120 L-20 470Z" fill="#000" opacity=".12"/>
+  <path d="M-20 370 L1020 30 L1020 92 L-20 440Z" fill="#2a2d32"/>
+  <path d="M-20 405 L1020 61" stroke="#f2c230" stroke-width="5" stroke-dasharray="34 22"/>
+  <g transform="translate(30 300)"><ellipse cx="40" cy="44" rx="70" ry="18" fill="#3b8a3c"/><rect x="6" y="10" width="68" height="26" rx="4" fill="#b5463b"/><text x="40" y="29" text-anchor="middle" font-family="Overpass,system-ui,sans-serif" font-weight="900" font-size="16" fill="#fff">START</text></g>
+  <g transform="translate(150 180)">${shape(1,70)}</g><g transform="translate(225 255)">${shape(1,56)}</g>
+  <g transform="translate(410 150)">${shape(2,74)}</g><g transform="translate(520 245)">${shape(2,58)}</g>
+  <g transform="translate(595 52)"><rect x="0" y="0" width="96" height="62" rx="5" fill="#1d6a4b" stroke="#fff" stroke-width="3"/><text x="48" y="30" text-anchor="middle" font-family="Overpass,system-ui,sans-serif" font-weight="900" font-size="22" fill="#fff">EXIT</text><path d="M40 52 L56 38 M48 38 H56 V46" stroke="#fff" stroke-width="4" fill="none"/><rect x="44" y="62" width="8" height="40" fill="#555"/></g>
+  <g transform="translate(760 175)">${shape(3,70)}</g><g transform="translate(840 245)">${shape(3,56)}</g>
+  <g transform="translate(860 20)"><circle cx="60" cy="56" r="64" fill="#5e8be0" opacity=".85"/><rect x="28" y="24" width="64" height="64" rx="6" transform="rotate(45 60 56)" fill="#f2c230" stroke="#1c1e21" stroke-width="3"/><text x="60" y="66" text-anchor="middle" font-family="Overpass,system-ui,sans-serif" font-weight="900" font-size="28" fill="#1c1e21">$$$</text></g>
+  <g transform="translate(250 270) rotate(-18)"><rect x="0" y="0" width="70" height="30" rx="8" fill="#b5463b"/><rect x="14" y="-14" width="38" height="18" rx="5" fill="#d86b5f"/><rect x="18" y="-11" width="14" height="12" rx="2" fill="#cfe3f2"/><rect x="35" y="-11" width="14" height="12" rx="2" fill="#cfe3f2"/><circle cx="16" cy="30" r="8" fill="#1c1e21"/><circle cx="54" cy="30" r="8" fill="#1c1e21"/></g>
+  </svg>`;
+}
+
+function drawRoute(){
+  const box=document.getElementById("route");if(!box)return;
+  const svg=box.querySelector("svg"),W=box.clientWidth,H=box.clientHeight;if(W<120||H<60)return;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const L=W<520?34:54,Rm=W<520?42:64,top=H<150?34:40,bot=H-24;
+  const pt=(t)=>({x:L+t*(W-L-Rm),y:bot-t*(bot-top)});
+  const pos=(i)=>pt((i+.5)/9);
+  const zx=[L,pt(3/9).x,pt(6/9).x,W-Rm];
+  let g="";
+  const zl=W<520?["Level 1","Level 2","Level 3"]:["1 Pre-start to start","2 Launch and growth","3 Management and exit"];
+  for(let k=0;k<3;k++){const x0=k===0?0:zx[k],x1=k===2?W:zx[k+1];g+=`<rect x="${x0}" y="0" width="${x1-x0}" height="${H}" fill="${LV[k+1].hex}" opacity=".16"/><text x="${x1-10}" y="${H-10}" text-anchor="end" font-size="13" font-weight="800" fill="${LV[k+1].hex}">${zl[k]}</text>`}
+  g+=`<path d="M${zx[1]} 0 V${H} M${zx[2]} 0 V${H}" stroke="#b5463b" stroke-width="3" stroke-dasharray="8 4" opacity=".7"/>`;
+  const a=pt(-.2),b=pt(1.2);
+  g+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#2a2d32" stroke-width="20" stroke-linecap="round"/><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#f2c230" stroke-width="2.5" stroke-dasharray="12 9"/>`;
+  const s0=pt(-.02);g+=`<g transform="translate(${s0.x-30} ${s0.y-34})"><rect width="44" height="18" rx="3" fill="#b5463b"/><text x="22" y="13" text-anchor="middle" font-size="10" font-weight="900" fill="#fff">START</text></g>`;
+  const ex=pt(6/9);g+=`<g transform="translate(${ex.x-22} ${ex.y-58})"><rect width="44" height="24" rx="3" fill="#1d6a4b" stroke="#fff" stroke-width="2"/><text x="22" y="16" text-anchor="middle" font-size="12" font-weight="900" fill="#fff">EXIT</text><rect x="20" y="24" width="4" height="20" fill="#666"/></g>`;
+  const en=pt(1);g+=`<g transform="translate(${en.x+6} ${en.y-18})"><rect x="4" y="4" width="26" height="26" rx="3" transform="rotate(45 17 17)" fill="#f2c230" stroke="#1c1e21" stroke-width="2"/><text x="17" y="21" text-anchor="middle" font-size="10" font-weight="900" fill="#1c1e21">$$$</text></g>`;
+  const sz=W<520?20:26;
+  for(let i=0;i<9;i++){const p=pos(i),l=Math.floor(i/3)+1,done=i<S.vs.length,cur=i===S.i&&(S.screen==="stop"||S.screen==="result"||S.screen==="level");
+    const fill=done?({smooth:"#3b8a3c",bumpy:"#d39a2a",detour:"#b5463b"}[S.vs[i]]):(cur?LV[l].hex:"var(--paper)");
+    g+=`<g transform="translate(${p.x-sz/2} ${p.y-sz/2-16})">${shape(l,sz,fill,LV[l].hex)}</g>`}
+  g+=`<g id="car"><g transform="translate(-17 -12)"><rect x="0" y="6" width="34" height="14" rx="5" fill="#b5463b" stroke="#fff" stroke-width="1.5"/><rect x="7" y="0" width="18" height="9" rx="3" fill="#d86b5f"/><circle cx="8" cy="20" r="4" fill="#1c1e21"/><circle cx="26" cy="20" r="4" fill="#1c1e21"/></g></g>`;
+  svg.innerHTML=g;
+  const ci=S.screen==="end"?9:S.i,cp=ci>=9?pt(1):pos(ci);
+  const car=svg.querySelector("#car");
+  const from=S.carFrom!=null?(S.carFrom>=9?pt(1):pos(S.carFrom)):cp;
+  car.style.transform=`translate(${from.x}px,${from.y}px) rotate(${-Math.atan((bot-top)/(W-L-Rm))*57.3}deg)`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{car.style.transform=`translate(${cp.x}px,${cp.y}px) rotate(${-Math.atan((bot-top)/(W-L-Rm))*57.3}deg)`}));
+  S.carFrom=ci;
+}
+let ro=null;
+function watch(rt){drawRoute();let w=rt.clientWidth;ro=new ResizeObserver(()=>{if(rt.clientWidth===w)return;w=rt.clientWidth;S.carFrom=S.screen==="end"?9:S.i;drawRoute()});ro.observe(rt)}
+function routeHTML(){return `<div class="route" id="route"><svg role="img" aria-label="Your progress along the road: stop ${Math.min(S.i+1,9)} of 9"></svg></div>`}
+
+function ruleCard(id,showWho){
+  const r=R[id];
+  return `<div class="sign">${diamond}<div><div class="kick">Rule of the road from ${esc(r.who)}</div><h3>${esc(r.t)}</h3><p>${esc(r.story)}</p><div class="two">${r.pre?`<div><b>My pre-class view</b>${esc(r.pre)}</div>`:""}<div${r.pre?"":` style="grid-column:1/-1"`}><b>What I took away</b>${esc(r.post)}</div></div></div></div>`;
+}
+
+function stopRule(stp){return stp.ruleF&&S.flags.badPartner?stp.ruleF:stp.rule}
+
+const V={
+ title(){return `<section class="hero"><div class="fig">${heroSvg()}</div><div class="hero-row"><div><h2>Rules of the Road: Entrepreneurship</h2><p class="story">Drive a venture from a kitchen table, a corner office or an operating room all the way to the exit. Pick a founder, make nine decisions across three stretches of road, survive the obstacles and collect the rules real entrepreneurs paid for. Each run takes about ten minutes.</p><div class="btns"><button class="go" data-a="pick">Start your engine</button><button class="ghost" data-a="rules">Read the Rulebook</button></div></div><div class="card road-key">${[1,2,3].map(l=>`<div class="key"><svg viewBox="0 0 34 34" aria-hidden="true">${shape(l,34)}</svg><div><b>Level ${l}: ${LV[l].name}</b><span>${LV[l].sub}</span></div></div>`).join("")}<div class="key"><svg viewBox="0 0 34 34" aria-hidden="true"><rect x="5" y="5" width="24" height="24" rx="3" transform="rotate(45 17 17)" fill="#f2c230" stroke="#1c1e21" stroke-width="2"/></svg><div><b>Road signs</b><span>Every stop ends with a rule from a guest’s story and my own papers</span></div></div></div></div></section>`},
+ pick(){return `<h2>Choose your driver</h2><p class="muted">Each driver is built from real founders we heard from, with their own road, obstacles and starting gauges.</p><div class="chars">${C.map(c=>`<button class="char" data-a="choose" data-id="${c.id}">${portrait(c.id)}<div class="body"><h3>${esc(c.name)}</h3><div class="tag">${esc(c.tag)}</div>${bars(c.start,false)}<div class="tag"><i>${esc(c.insp)}</i></div></div></button>`).join("")}</div>`},
+ level(){const l=Math.floor(S.i/3)+1,lv=LV[l];return routeHTML()+bars(S.st,true)+`<div class="card lvl"><svg viewBox="0 0 120 120" aria-hidden="true">${shape(l,120)}<text x="60" y="72" text-anchor="middle" font-size="40" font-weight="900" fill="#fff">${l}</text></svg><div><div class="badge" style="color:${lv.hex}">Level ${l} of 3</div><h2>${lv.name}: ${lv.sub}</h2><p class="story">${["Turn an idea into a company: decide how you leave, what you build or buy and who you sell to first.","You have a product and a market. Now growth tests your cash, your team and your nerve.","Lead like a CEO, build value and decide when, how and to whom you sell."][l-1]}</p><button class="go" data-a="begin">Hit the road</button></div></div>`},
+ stop(){const stp=ch().stops[S.i],l=stp.l;let txt=stp.text;if(stp.textH&&S.flags.handshake)txt+=stp.textH;if(stp.textF&&S.flags.badPartner)txt+=stp.textF;
+  return routeHTML()+bars(S.st,true)+`<div class="card stop"><div class="badge" style="color:${LV[l].hex}"><svg viewBox="0 0 30 30" aria-hidden="true">${shape(l,30)}</svg>Level ${l}: ${LV[l].name}, stop ${S.i%3+1} of 3</div><h2>${esc(stp.title)}</h2><p class="story">${esc(txt)}</p><div class="opts">${stp.o.map((o,k)=>`<button class="opt" data-a="opt" data-k="${k}"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="${LV[l].hex}"/><path d="M9 13 H17 M13 9 L17 13 L13 17" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg><span>${esc(o.t)}</span></button>`).join("")}</div></div>`},
+ result(){const stp=ch().stops[S.i],o=stp.o[S.pick],l=stp.l;const vt={smooth:"Smooth road",bumpy:"Bumpy road",detour:"Detour"}[o.v];
+  const ch2=[["f","Fuel"],["s","Speed"],["c","Crew"]].filter(x=>o.d[x[0]]).map(x=>`<span class="chip">${x[1]} <b class="${o.d[x[0]]>0?"up":"dn"}">${o.d[x[0]]>0?"+":""}${o.d[x[0]]}</b></span>`).join("");
+  const bk=S.broke?`<span class="chip">Out of gas: you skip paychecks and borrow from family to keep rolling (Speed -1, Crew -1)</span>`:"";
+  const last=o.end||S.i===8;
+  return routeHTML()+bars(S.st,true)+`<div class="card stop"><div class="badge" style="color:${LV[l].hex}"><svg viewBox="0 0 30 30" aria-hidden="true">${shape(l,30)}</svg>${esc(stp.title)}</div><div><span class="verdict v-${o.v}">${vt}</span></div><p class="story"><b>You chose:</b> ${esc(o.t)}.</p><p class="story">${esc(o.out)}</p><div class="chips">${ch2}${bk}</div>${ruleCard(stopRule(stp))}<div class="next"><button class="go" data-a="next">${last?"See your exit":"Next stop"}</button></div></div>`},
+ end(){const c=ch(),st=S.st;const m=S.mult!=null?S.mult:Math.max(1,Math.min(9,Math.round((.8+st.s*.45+st.c*.25+st.f*.15)*10)/10));
+  const tier=S.mult!=null?["An early exit","You sold at the first real offer. The phone will ring again for companies that keep growing, but this time you answered it."]:m>=6?["The 7x exit","Like Lori Torres, you turned down the wrong offers and said yes to the right one. A top-tier result."]:m>=3.5?["A solid strategic sale","A respectable multiple and a business that keeps running. A few bumps cost you some value along the way."]:["A rough landing","You reached the exit, but cash crunches and lost people dragged the price down, the way a lost lawsuit cut Rod Derifield’s multiple."];
+  const crew=st.c>=7?"Your team lands well and the company keeps thriving after you leave.":st.c<=3?"Your team scattered along the way, and buyers priced that in.":"Most of your team makes the transition with you.";
+  const smooth=S.vs.filter(v=>v==="smooth").length;
+  return routeHTML()+`<div class="ending"><div class="card"><div class="badge" style="color:var(--l3)">${esc(c.name)} reached the exit</div><div class="big">${m.toFixed(1)}x</div><p class="muted">exit multiple of revenue</p><h2>${tier[0]}</h2><p>${tier[1]} ${crew}</p><p class="muted">${smooth} of ${S.vs.length} stops on a smooth road.</p>${bars(st,false)}<div class="btns" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px"><button class="go" data-a="pick">Drive another road</button><button class="ghost" data-a="rules">Full Rulebook</button></div></div><div class="card"><h3>Your Rules of the Road</h3><p class="muted">The ${S.got.length} rules you collected on this drive.</p><ul class="list">${S.got.map(id=>`<li><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="2" transform="rotate(45 10 10)" fill="#f2c230" stroke="#1c1e21" stroke-width="1.5"/></svg><span><b>${esc(R[id].t)}.</b> ${esc(R[id].post)}</span></li>`).join("")}</ul><button class="ghost" data-a="copy" style="margin-top:14px">Copy my rules</button> <span id="copied" class="muted"></span></div></div>`},
+ rulebook(){return `<h2>The Rulebook</h2><p class="story">All ${Object.keys(R).length} rules I learned this semester, laid out on the professor’s road from pre-start to exit. Each one names the founder whose story taught it, my view before class and what changed after.</p>${[1,2,3].map(l=>`<section class="rb-lvl"><div class="rb-head" style="background:${LV[l].hex}"><svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true">${shape(l,30,"#fff",LV[l].hex)}</svg>Level ${l}: ${LV[l].name}, ${LV[l].sub}</div><div class="rules">${Object.entries(R).filter(e=>e[1].l===l).map(([id,r])=>`<article class="rule"><div class="src">${esc(r.topic)}</div><h3>${esc(r.t)}</h3><div class="src">${esc(r.who)}</div><p>${esc(r.story)}</p><div class="two">${r.pre?`<div><b>My pre-class view</b>${esc(r.pre)}</div>`:""}<div><b>What I took away</b>${esc(r.post)}</div></div></article>`).join("")}</div></section>`).join("")}<div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap"><button class="go" data-a="pick">Play the game</button><button class="ghost" data-a="title">Back to start</button></div>`}
+};
+
+
+/* ---------- soundtrack: generated with the Web Audio API, no files ---------- */
+/*AUDIO-START*/
+const AU={ctx:null,on:true,layer:0,step:0,next:0,timer:null,key:50,keyT:50,mel:new Map()};
+try{if(localStorage.getItem("rotr-music")==="off")AU.on=false}catch(e){}
+const mtof=(n)=>440*2**((n-69)/12);
+const SD=60/128/4;
+const SC=[0,2,4,5,7,9,11],PENT=[0,2,4,7,9];
+const RHY=[[0,3,6,8,10,12],[0,2,4,7,10,14],[0,3,6,10,11,12,14],[0,4,6,8,11,14],[2,4,6,8,12],[0,3,6,9,12,14],[0,2,3,6,8,10,13]];
+function chordOf(deg,key){return [0,2,4].map(i=>{const k=deg+i;return key+SC[k%7]+12*Math.floor(k/7)})}
+function plan(b){
+  if(b<8)return {sec:"verse",deg:[0,4,5,3][b%4]};
+  if(b<16)return {sec:"chorus",deg:[5,3,0,4][b%4]};
+  if(b<20)return {sec:"break",deg:[5,3,0,4][b%4]};
+  if(b<28)return {sec:"bridge",deg:[3,4,1,5][b%4]};
+  return {sec:"turn",deg:[1,3,4,4][b-28]};
+}
+function rng(seed){let x=(seed*7919+13)%2147483647;if(x<=0)x+=2147483646;return()=>(x=x*16807%2147483647)/2147483647}
+function phrase(cyc,id,key){
+  const k=cyc+"-"+id+"-"+key;if(AU.mel.has(k))return AU.mel.get(k);
+  const r=rng(cyc*97+id*31+key),list=[];
+  for(let o=0;o<3;o++)PENT.forEach(p=>list.push(key+24+o*12+p));
+  const mel=new Array(32).fill(0);let idx=4+Math.floor(r()*4);
+  for(let half=0;half<2;half++){const rh=RHY[Math.floor(r()*RHY.length)];
+    rh.forEach(st=>{idx+=[-2,-1,-1,0,1,1,2][Math.floor(r()*7)];idx=Math.max(2,Math.min(12,idx));mel[half*16+st]=list[idx]})}
+  if(AU.mel.size>200)AU.mel.clear();
+  AU.mel.set(k,mel);return mel;
+}
+function leadNote(cyc,b,p){
+  let rel,id;
+  if(b>=8&&b<16){rel=b-8;id=[0,1,0,2][Math.floor(rel/2)]}
+  else if(b>=20&&b<28){rel=b-20;id=[3,4,3,5][Math.floor(rel/2)]}
+  else return 0;
+  return phrase(cyc,id,AU.key)[(rel%2)*16+p];
+}
+function auBuild(c){
+  AU.ctx=c;
+  AU.master=c.createGain();AU.master.gain.value=AU.on?.55:0;
+  const comp=c.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;comp.attack.value=.004;comp.release.value=.2;
+  AU.bus=c.createGain();AU.bus.gain.value=1;AU.bus.connect(comp);comp.connect(AU.master);AU.master.connect(c.destination);
+  AU.delay=c.createDelay(1);AU.delay.delayTime.value=SD*3;const fb=c.createGain();fb.gain.value=.32;const wet=c.createGain();wet.gain.value=.35;
+  AU.delay.connect(fb);fb.connect(AU.delay);AU.delay.connect(wet);wet.connect(AU.bus);
+  const len=Math.floor(c.sampleRate*.5),buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);let seed=7;
+  for(let i=0;i<len;i++){seed=seed*16807%2147483647;d[i]=seed/1073741823-1}
+  AU.noise=buf;
+}
+function osc(type,f,t,dur,vol,cut,det,att,send){
+  const c=AU.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(det)o.detune.value=det;
+  let out=o;if(cut){const fl=c.createBiquadFilter();fl.type="lowpass";fl.frequency.setValueAtTime(cut,t);o.connect(fl);out=fl}
+  const a=att||.006;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+Math.max(dur,a+.02));
+  out.connect(g);g.connect(AU.bus);if(send)g.connect(AU.delay);o.start(t);o.stop(t+dur+.05);
+}
+function hit(t,dur,vol,ftype,freq,f2){
+  const c=AU.ctx,n=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();n.buffer=AU.noise;n.loop=true;f.type=ftype;f.frequency.setValueAtTime(freq,t);if(f2)f.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  if(f2){g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+dur*.95);g.gain.exponentialRampToValueAtTime(.0001,t+dur)}else{g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur)}
+  n.connect(f);f.connect(g);g.connect(AU.bus);n.start(t);n.stop(t+dur+.02);
+}
+function kick(t){const c=AU.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.0001,t+.24);o.connect(g);g.connect(AU.bus);o.start(t);o.stop(t+.28)}
+function snare(t,clap){hit(t,.15,.32,"bandpass",1900);osc("triangle",190,t,.08,.2);if(clap){hit(t+.011,.1,.18,"highpass",1300);hit(t+.022,.12,.14,"highpass",1100)}}
+function playStep(s,t){
+  const bar=Math.floor(s/16),b=bar%32,cyc=Math.floor(bar/32),p=s%16,L=AU.layer;
+  if(p===0&&b%4===0)AU.key=AU.keyT;
+  const P=plan(b),ch=chordOf(P.deg,AU.key),root=ch[0],brk=P.sec==="break",drums=L>=1;
+  if(drums&&p===0&&(b===0||b===8||b===20||b===28))hit(t,1.4,.16,"highpass",5200);
+  if(drums){
+    if((!brk&&p%4===0)||(b===19&&p%4===0))kick(t);
+    if(P.sec==="turn"&&b%2===1&&p===14)kick(t);
+    if(!brk&&(p===4||p===12))snare(t,P.sec==="chorus"||P.sec==="bridge"||L>=3);
+    if(b===19&&p>=8)hit(t,.07,.05+.025*(p-8),"bandpass",1400+p*120);
+    if(b===31&&p>=10&&p%2===0)snare(t,false);
+    if((b===18||b===30)&&p===0)hit(t,SD*32,.12,"bandpass",300,7000);
+  }
+  if(!brk||p%2===1)hit(t,.03,p%4===0?.03:.022,"highpass",8500);
+  if(!brk&&p%4===2)hit(t,.16,L>=1?.075:.04,"highpass",6800);
+  if(!brk||b===19){if(p%2===0)osc("sawtooth",mtof(root-12+(p%4===2?12:0)),t,SD*1.7,.22,L>=2?900:700)}
+  else if(p===0)osc("sawtooth",mtof(root-12),t,SD*15,.18,500,0,.05);
+  if(p===0)ch.forEach(n=>{osc("sawtooth",mtof(n),t,SD*15.5,.03,brk?900:1600,-9,.12);osc("sawtooth",mtof(n),t,SD*15.5,.03,brk?900:1600,9,.12)});
+  const pat=[0,1,2,3,2,1,3,1];const arpNotes=[ch[0],ch[1],ch[2],ch[0]+12];
+  const an=arpNotes[pat[(p+(P.sec==="bridge"?2:0))%8]]+12;
+  const cut=brk?500+((b-16)*16+p)/64*4500:(L>=2?3400:2600);
+  osc("square",mtof(an),t,SD*.85,brk?.08:.045,cut);
+  if(L>=3&&!brk&&p%2===0)osc("square",mtof(an+12),t,SD*.6,.02,4000);
+  if(L>=1){const n=leadNote(cyc,b,p);if(n){osc("sawtooth",mtof(n),t,SD*2.4,.06,3400,-7,.01,true);osc("sawtooth",mtof(n),t,SD*2.4,.06,3400,7,.01)}}
+  if(L>=2&&P.sec==="verse"&&(p===0||p===6||p===10))osc("triangle",mtof(ch[[0,1,2][p%3]]+24),t,.5,.08,0,0,.005,true);
+  if(L>=2&&P.sec==="turn"&&p%4===0)osc("triangle",mtof(ch[(p/4)%3]+24),t,.35,.07,0,0,.005,true);
+}
+function setKey(){AU.keyT=50+({0:0,1:0,2:2,3:5}[AU.layer]||0)}
+/*AUDIO-END*/
+function auInit(){
+  if(AU.ctx)return true;
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+  try{auBuild(new AC())}catch(e){return false}
+  return true;
+}
+function tick(){const c=AU.ctx;if(AU.next<c.currentTime)AU.next=c.currentTime+.05;while(AU.next<c.currentTime+.15){playStep(AU.step,AU.next);AU.step++;AU.next+=SD}}
+function auStart(){if(!AU.on||!auInit())return;AU.ctx.resume().catch(()=>{});if(!AU.timer){AU.next=AU.ctx.currentTime+.08;AU.timer=setInterval(tick,25)}}
+function auStop(){if(AU.timer){clearInterval(AU.timer);AU.timer=null}if(AU.ctx)AU.ctx.suspend().catch(()=>{})}
+function sfx(kind){
+  if(!AU.on||!AU.ctx||AU.ctx.state!=="running")return;const t=AU.ctx.currentTime+.02,k0=AU.key+12;
+  const seq={smooth:[0,4,7,12,16],bumpy:[7,6,7,3],detour:[7,3,0,-5],fanfare:[0,4,7,12,16,19,24]}[kind]||[];
+  seq.forEach((n,k)=>osc(kind==="bumpy"?"sawtooth":"square",mtof(k0+12+n),t+k*.07,kind==="fanfare"&&k===seq.length-1?1:.18,kind==="bumpy"?.06:.08,4000,0,.005,true));
+}
+function setLayer(){AU.layer={title:1,pick:1,rulebook:0,level:Math.floor(S.i/3)+1,stop:Math.floor(S.i/3)+1,result:Math.floor(S.i/3)+1,end:3}[S.screen]??0;setKey()}
+const mb=document.getElementById("music");
+function paintMusic(){mb.setAttribute("aria-pressed",AU.on?"true":"false");mb.querySelector("span").textContent=AU.on?"Music on":"Music off"}
+paintMusic();
+mb.addEventListener("click",(e)=>{e.stopPropagation();AU.on=!AU.on;try{localStorage.setItem("rotr-music",AU.on?"on":"off")}catch(err){}paintMusic();if(AU.on){auStart();if(AU.master)AU.master.gain.value=.55}else auStop()});
+document.addEventListener("pointerdown",(e)=>{if(e.target.closest&&e.target.closest("#music"))return;auStart()},{passive:true});
+document.addEventListener("keydown",()=>auStart());
+document.addEventListener("visibilitychange",()=>{if(document.hidden)auStop();else if(AU.on&&AU.ctx)auStart()});
+
+function render(){
+  if(ro){ro.disconnect();ro=null}
+  setLayer();
+  app.innerHTML=V[S.screen]();
+  const rt=document.getElementById("route");
+  if(rt)watch(rt);
+  S.prev=null;
+}
+function go(screen){S.screen=screen;try{if(screen==="rulebook"){if(location.hash!=="#rulebook")location.hash="rulebook"}else if(location.hash)history.replaceState(null,"",location.pathname+location.search)}catch(e){}render();window.scrollTo({top:0,behavior:"instant"})}
+
+app.addEventListener("click",(e)=>{
+  const b=e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="pick")return go("pick");
+  if(a==="title")return go("title");
+  if(a==="rules")return go("rulebook");
+  if(a==="choose"){const c=C.find(x=>x.id===b.dataset.id);S=Object.assign(JSON.parse(JSON.stringify(S0)),{ch:c.id,st:Object.assign({},c.start),carFrom:0});return go("level")}
+  if(a==="begin")return go("stop");
+  if(a==="opt"){const stp=ch().stops[S.i],o=stp.o[+b.dataset.k];S.prev=Object.assign({},S.st);S.pick=+b.dataset.k;
+    for(const k of ["f","s","c"])S.st[k]=clamp(S.st[k]+(o.d[k]||0));
+    S.broke=false;if(S.st.f<=0){S.st.f=2;S.st.s=clamp(S.st.s-1);S.st.c=clamp(S.st.c-1);S.broke=true}
+    if(o.flag)S.flags[o.flag]=true;S.vs.push(o.v);S.got.push(stopRule(stp));if(o.end)S.mult=o.end;sfx(o.v);
+    S.screen="result";setLayer();if(ro){ro.disconnect();ro=null}app.innerHTML=V.result();const rt=document.getElementById("route");if(rt)watch(rt);S.prev=null;return}
+  if(a==="next"){const o=ch().stops[S.i].o[S.pick];S.carFrom=S.i;
+    if(o.end||S.i===8){S.i=9;sfx("fanfare");return go("end")}
+    S.i++;return go(S.i%3===0?"level":"stop")}
+  if(a==="copy"){const txt="My Rules of the Road ("+ch().name+")\n"+S.got.map((id,n)=>(n+1)+". "+R[id].t+": "+R[id].post).join("\n");
+    const out=document.getElementById("copied");
+    try{navigator.clipboard.writeText(txt).then(()=>{out.textContent="Copied"},()=>{out.textContent="Copy was blocked here"})}catch(err){out.textContent="Copy was blocked here"}}
+});
+document.getElementById("home").addEventListener("click",()=>go("title"));
+document.getElementById("openRules").addEventListener("click",()=>go("rulebook"));
+window.addEventListener("hashchange",()=>{if(location.hash==="#rulebook"&&S.screen!=="rulebook"){S.screen="rulebook";render()}});
+
+function start(data){
+  if(data&&data.screen&&V[data.screen])S=Object.assign(JSON.parse(JSON.stringify(S0)),data);
+  if(location.hash==="#rulebook")S.screen="rulebook";
+  render();
+
+</script>
+</body>
+</html>
